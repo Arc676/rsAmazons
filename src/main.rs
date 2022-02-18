@@ -1,3 +1,14 @@
+// Taken from public eframe template (with light modifications)
+// https://github.com/emilk/eframe_template
+
+#![forbid(unsafe_code)]
+
+mod app;
+
+use app::AmazonsGame;
+
 fn main() {
-    println!("Hello, world!");
+    let app = AmazonsGame::default();
+    let native_options = eframe::NativeOptions::default();
+    eframe::run_native(Box::new(app), native_options);
 }

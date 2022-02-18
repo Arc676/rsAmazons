@@ -1,8 +1,12 @@
 [package]
-name = "Amazons"
+name = "amazons"
 version = "0.1.0"
 edition = "2021"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+authors = ["Arc676/Alessandro Vinciguerra <alesvinciguerra@gmail.com>"]
 
 [dependencies]
+eframe = "0.16.0" # Gives us egui, epi and web+native backends
+serde = { version = "1", features = ["derive"], optional = true }
+
+[features]
+persistence = ["eframe/persistence", "serde"]
