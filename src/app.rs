@@ -14,7 +14,8 @@
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 use eframe::{egui, epi};
-use eframe::egui::{Separator, Slider, Ui};
+use eframe::egui::{Color32, emath, Painter, Pos2, Rect, Sense, Separator, Slider, Ui};
+use eframe::egui::emath::RectTransform;
 
 type PosVec = Vec<(u32, u32)>;
 
@@ -58,6 +59,24 @@ impl AmazonsGame {
         self.white_pos = self.white_starting.clone();
         self.black_pos = self.black_starting.clone();
     }
+
+    fn draw_board(&self, painter: &Painter, to_screen: RectTransform) {
+        let square_size = (1. / self.board_height as f32)
+            .min(1. / self.board_width as f32);
+        for x in 0..self.board_width {
+            for y in 0..self.board_height {
+                if (x + y) % 2 == 0 {
+                    let x = x as f32 * square_size;
+                    let y = y as f32 * square_size;
+                    let rect = Rect{
+                        min: to_screen * Pos2 { x, y },
+                        max: to_screen * Pos2 { x: x + square_size, y: y + square_size }
+                    };
+                    painter.rect_filled(rect, 0., Color32::GRAY);
+                }
+            }
+        }
+    }
 }
 
 fn number_setting(ui: &mut Ui, num: &mut u32, min: u32, max: u32, lbl: &str) {
@@ -91,6 +110,17 @@ impl epi::App for AmazonsGame {
             if ui.button("Quit").clicked() {
                 frame.quit();
             }
+        });
+
+        egui::CentralPanel::default().show(ctx, |ui| {
+            ui.heading("Game of the Amazons");
+            let (response, painter) = ui.allocate_painter(
+                ui.available_size_before_wrap(), Sense::click());
+            let to_screen = emath::RectTransform::from_to(
+                Rect::from_min_size(Pos2::ZERO, response.rect.square_proportions()),
+                response.rect,
+            );
+            self.draw_board(&painter, to_screen);
         });
     }
 
