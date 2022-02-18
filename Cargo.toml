@@ -9,4 +9,5 @@ eframe = "0.16.0" # Gives us egui, epi and web+native backends
 serde = { version = "1", features = ["derive"], optional = true }
 
 [features]
+default = ["persistence"]
 persistence = ["eframe/persistence", "serde"]
