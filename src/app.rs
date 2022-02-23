@@ -20,6 +20,7 @@ use eframe::egui::{
 };
 use eframe::epi::Frame;
 use eframe::{egui, epi};
+use crate::boardstate::Amazons::*;
 
 type PosVec = Vec<(u32, u32)>;
 
@@ -38,14 +39,29 @@ pub struct AmazonsGame {
     white_starting: PosVec,
     black_starting: PosVec,
 
+    // Sprites
     #[cfg_attr(feature = "persistence", serde(skip))]
     white_sprite: Option<(TextureId, Vec2)>,
-
     #[cfg_attr(feature = "persistence", serde(skip))]
     black_sprite: Option<(TextureId, Vec2)>,
-
     #[cfg_attr(feature = "persistence", serde(skip))]
     arrow_sprite: Option<(TextureId, Vec2)>,
+
+    // Game state
+    #[cfg_attr(feature = "persistence", serde(skip))]
+    game_in_progress: bool,
+    #[cfg_attr(feature = "persistence", serde(skip))]
+    boardstate: BoardState,
+
+    #[cfg_attr(feature = "persistence", serde(skip))]
+    highlight_regions: bool,
+
+    #[cfg_attr(feature = "persistence", serde(skip))]
+    src_square: Square,
+    #[cfg_attr(feature = "persistence", serde(skip))]
+    dst_square: Square,
+    #[cfg_attr(feature = "persistence", serde(skip))]
+    shot_square: Square,
 }
 
 impl Default for AmazonsGame {
@@ -55,17 +71,29 @@ impl Default for AmazonsGame {
             board_width: 10,
             white_amazons: 4,
             black_amazons: 4,
-            white_starting: vec![(3, 0), (0, 3), (0, 6), (3, 9)],
-            black_starting: vec![(6, 0), (9, 3), (9, 6), (6, 9)],
+            white_starting: vec![],
+            black_starting: vec![],
             white_sprite: None,
             black_sprite: None,
             arrow_sprite: None,
+            game_in_progress: false,
+            boardstate: BoardState::default(),
+            highlight_regions: false,
+            src_square: Square::default(),
+            dst_square: Square::default(),
+            shot_square: Square::default(),
         }
     }
 }
 
 impl AmazonsGame {
     pub fn new_game(&mut self) {
+        unsafe {
+            if self.white_starting.is_empty() {
+                boardstate_standard(&mut self.boardstate);
+            }
+        }
+        self.game_in_progress = true;
     }
 
     fn load_sprites(&mut self, frame: &Frame) {
@@ -119,6 +147,22 @@ impl AmazonsGame {
                 }
             }
         }
+        if self.game_in_progress {
+            for x in 0..self.board_width {
+                for y in 0..self.board_height {
+                    let rect = self.square_from_coords(x, y, to_screen);
+                    let mut sq = Square::new(x, y);
+                    unsafe {
+                        match boardstate_squareState(&mut self.boardstate, &mut sq) {
+                            SquareState_WHITE => AmazonsGame::draw_sprite(rect, self.white_sprite, painter),
+                            SquareState_BLACK => AmazonsGame::draw_sprite(rect, self.black_sprite, painter),
+                            SquareState_ARROW => AmazonsGame::draw_sprite(rect, self.arrow_sprite, painter),
+                            _ => ()
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -145,6 +189,10 @@ impl epi::App for AmazonsGame {
 
             if ui.button("Revert to default parameters").clicked() {
                 *self = AmazonsGame::default();
+            }
+
+            if ui.button("New Game").clicked() {
+                self.new_game();
             }
 
             let sep = Separator::default().spacing(12.).horizontal();

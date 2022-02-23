@@ -4,6 +4,9 @@
 #[allow(non_snake_case)]
 #[allow(non_upper_case_globals)]
 pub mod Amazons {
+    use std::os::raw::c_int;
+    use std::ptr;
+
     pub const SquareState_EMPTY: SquareState = 0;
     pub const SquareState_ARROW: SquareState = 1;
     pub const SquareState_WHITE: SquareState = 2;
@@ -30,7 +33,7 @@ pub mod Amazons {
     #[doc = " (number of pieces for each player, board size,"]
     #[doc = " board state, and regions controlled by each player)"]
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Debug)]
     pub struct BoardState {
         pub whitePieces: ::std::os::raw::c_int,
         pub blackPieces: ::std::os::raw::c_int,
@@ -39,6 +42,28 @@ pub mod Amazons {
         pub currentPlayer: SquareState,
         pub board: *mut SquareState,
         pub map: *mut SquareState,
+    }
+
+    impl Default for BoardState {
+        fn default() -> Self {
+            BoardState {
+                whitePieces: 0,
+                blackPieces: 0,
+                boardWidth: 0,
+                boardHeight: 0,
+                currentPlayer: 0,
+                board: ptr::null_mut(),
+                map: ptr::null_mut()
+            }
+        }
+    }
+
+    impl Drop for BoardState {
+        fn drop(&mut self) {
+            unsafe {
+                boardstate_free(self);
+            }
+        }
     }
 
     #[test]
@@ -131,6 +156,21 @@ pub mod Amazons {
     pub struct Square {
         pub x: ::std::os::raw::c_int,
         pub y: ::std::os::raw::c_int,
+    }
+
+    impl Default for Square {
+        fn default() -> Self {
+            Square { x: 0, y: 0 }
+        }
+    }
+
+    impl Square {
+        pub fn new(x: u32, y: u32) -> Self {
+            Square {
+                x: x as c_int,
+                y: y as c_int
+            }
+        }
     }
 
     #[test]
