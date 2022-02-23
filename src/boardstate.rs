@@ -11,9 +11,6 @@ pub mod Amazons {
     pub const SquareState_ARROW: SquareState = 1;
     pub const SquareState_WHITE: SquareState = 2;
     pub const SquareState_BLACK: SquareState = 4;
-    pub const SquareState_SHARED: SquareState = 6;
-    pub const SquareState_HAS_MOVES: SquareState = 8;
-    pub const SquareState_UNDECIDED: SquareState = 14;
 
     #[doc = " Represents the possible states of a square on the board;"]
     #[doc = " additional states are used to represent regions of the board"]
