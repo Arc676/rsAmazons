@@ -25,6 +25,13 @@ use eframe::{egui, epi};
 type PosVec = Vec<(u32, u32)>;
 type ImageData = (TextureId, Vec2);
 
+enum ClickableState {
+    GameInProgress,
+    PickingWhite,
+    PickingBlack,
+    Idle
+}
+
 #[cfg_attr(feature = "persistence", derive(serde::Deserialize, serde::Serialize))]
 #[cfg_attr(feature = "persistence", serde(default))]
 pub struct AmazonsGame {
@@ -50,7 +57,7 @@ pub struct AmazonsGame {
 
     // Game state
     #[cfg_attr(feature = "persistence", serde(skip))]
-    game_in_progress: bool,
+    state: ClickableState,
     #[cfg_attr(feature = "persistence", serde(skip))]
     boardstate: BoardState,
 
@@ -79,7 +86,7 @@ impl Default for AmazonsGame {
             white_sprite: None,
             black_sprite: None,
             arrow_sprite: None,
-            game_in_progress: false,
+            state: ClickableState::Idle,
             boardstate: BoardState::default(),
             highlight_regions: false,
             src_square: Square::default(),
@@ -97,7 +104,7 @@ impl AmazonsGame {
                 boardstate_standard(&mut self.boardstate);
             }
         }
-        self.game_in_progress = true;
+        self.state = ClickableState::GameInProgress;
     }
 
     fn load_sprites(&mut self, frame: &Frame) {
@@ -156,37 +163,40 @@ impl AmazonsGame {
                 }
             }
         }
-        if self.game_in_progress {
-            for x in 0..self.board_width {
-                for y in 0..self.board_height {
-                    let rect = self.square_from_coords(x, y, to_screen);
-                    let mut sq = Square::new(x, y);
-                    unsafe {
-                        match boardstate_squareState(&mut self.boardstate, &mut sq) {
-                            SquareState_WHITE => {
-                                AmazonsGame::draw_sprite(rect, self.white_sprite, painter)
+        match self.state {
+            ClickableState::GameInProgress => {
+                for x in 0..self.board_width {
+                    for y in 0..self.board_height {
+                        let rect = self.square_from_coords(x, y, to_screen);
+                        let mut sq = Square::new(x, y);
+                        unsafe {
+                            match boardstate_squareState(&mut self.boardstate, &mut sq) {
+                                SquareState_WHITE => {
+                                    AmazonsGame::draw_sprite(rect, self.white_sprite, painter)
+                                }
+                                SquareState_BLACK => {
+                                    AmazonsGame::draw_sprite(rect, self.black_sprite, painter)
+                                }
+                                SquareState_ARROW => {
+                                    AmazonsGame::draw_sprite(rect, self.arrow_sprite, painter)
+                                }
+                                _ => (),
                             }
-                            SquareState_BLACK => {
-                                AmazonsGame::draw_sprite(rect, self.black_sprite, painter)
-                            }
-                            SquareState_ARROW => {
-                                AmazonsGame::draw_sprite(rect, self.arrow_sprite, painter)
-                            }
-                            _ => (),
                         }
                     }
                 }
-            }
-            if self.clicked_square == 2 {
-                let (x, y) = self.dst_square.destructure();
-                let rect = self.square_from_coords(x, y, to_screen);
-                painter.rect_filled(rect, 0., Color32::RED);
-            }
-            if self.clicked_square >= 1 {
-                let (x, y) = self.src_square.destructure();
-                let rect = self.square_from_coords(x, y, to_screen);
-                painter.rect_filled(rect, 0., Color32::from_rgba_unmultiplied(0, 255, 0, 128))
-            }
+                if self.clicked_square == 2 {
+                    let (x, y) = self.dst_square.destructure();
+                    let rect = self.square_from_coords(x, y, to_screen);
+                    painter.rect_filled(rect, 0., Color32::RED);
+                }
+                if self.clicked_square >= 1 {
+                    let (x, y) = self.src_square.destructure();
+                    let rect = self.square_from_coords(x, y, to_screen);
+                    painter.rect_filled(rect, 0., Color32::from_rgba_unmultiplied(0, 255, 0, 128))
+                }
+            },
+            _ => ()
         }
     }
 
@@ -244,7 +254,7 @@ fn number_setting(ui: &mut Ui, num: &mut u32, min: u32, max: u32, lbl: &str) {
 impl epi::App for AmazonsGame {
     fn update(&mut self, ctx: &egui::CtxRef, frame: &epi::Frame) {
         egui::SidePanel::left("side_panel").show(ctx, |ui| {
-            if self.game_in_progress {
+            if self.state == ClickableState::GameInProgress {
                 ui.heading("Game In Progress");
                 if ui.button("Undo last selection").clicked() {
                     if self.clicked_square > 0 {
@@ -253,7 +263,7 @@ impl epi::App for AmazonsGame {
                 }
                 ui.label("Cannot change settings during a game");
                 if ui.button("Stop Game").clicked() {
-                    self.game_in_progress = false;
+                    self.state == ClickableState::Idle;
                 }
             } else {
                 ui.heading("Settings");
@@ -297,22 +307,25 @@ impl epi::App for AmazonsGame {
                 let square_size = self.square_size();
                 let x = (canvas_pos.x / square_size).floor() as u32;
                 let y = (canvas_pos.y / square_size).floor() as u32;
-                if self.game_in_progress {
-                    let acceptable = match self.clicked_square {
-                        0 => self.set_src(x, y),
-                        1 => self.set_dst(x, y),
-                        _ => {
-                            if self.move_amazon(x, y) {
-                                // check for winner
-                                true
-                            } else {
-                                false
+                match self.state {
+                    ClickableState::GameInProgress => {
+                        let acceptable = match self.clicked_square {
+                            0 => self.set_src(x, y),
+                            1 => self.set_dst(x, y),
+                            _ => {
+                                if self.move_amazon(x, y) {
+                                    // check for winner
+                                    true
+                                } else {
+                                    false
+                                }
                             }
-                        },
-                    };
-                    if acceptable {
-                        self.clicked_square = (self.clicked_square + 1) % 3;
-                    }
+                        };
+                        if acceptable {
+                            self.clicked_square = (self.clicked_square + 1) % 3;
+                        }
+                    },
+                    _ => ()
                 }
             }
             self.draw_board(&painter, to_screen, frame);
