@@ -2,8 +2,8 @@
 // https://github.com/emilk/eframe_template
 
 mod app;
-mod sprites;
 mod boardstate;
+mod sprites;
 
 use app::AmazonsGame;
 

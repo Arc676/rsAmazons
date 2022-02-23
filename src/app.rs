@@ -13,6 +13,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
+use crate::boardstate::Amazons::*;
 use crate::sprites::*;
 use eframe::egui::emath::RectTransform;
 use eframe::egui::{
@@ -20,7 +21,6 @@ use eframe::egui::{
 };
 use eframe::epi::Frame;
 use eframe::{egui, epi};
-use crate::boardstate::Amazons::*;
 
 type PosVec = Vec<(u32, u32)>;
 
@@ -155,10 +155,16 @@ impl AmazonsGame {
                     let mut sq = Square::new(x, y);
                     unsafe {
                         match boardstate_squareState(&mut self.boardstate, &mut sq) {
-                            SquareState_WHITE => AmazonsGame::draw_sprite(rect, self.white_sprite, painter),
-                            SquareState_BLACK => AmazonsGame::draw_sprite(rect, self.black_sprite, painter),
-                            SquareState_ARROW => AmazonsGame::draw_sprite(rect, self.arrow_sprite, painter),
-                            _ => ()
+                            SquareState_WHITE => {
+                                AmazonsGame::draw_sprite(rect, self.white_sprite, painter)
+                            }
+                            SquareState_BLACK => {
+                                AmazonsGame::draw_sprite(rect, self.black_sprite, painter)
+                            }
+                            SquareState_ARROW => {
+                                AmazonsGame::draw_sprite(rect, self.arrow_sprite, painter)
+                            }
+                            _ => (),
                         }
                     }
                 }
@@ -189,11 +195,9 @@ impl epi::App for AmazonsGame {
                 number_setting(ui, &mut self.board_width, 2, 20, "Board width");
                 number_setting(ui, &mut self.board_height, 2, 20, "Board height");
 
-                if ui.button("Set player 1 starting positions").clicked() {
-                }
+                if ui.button("Set player 1 starting positions").clicked() {}
 
-                if ui.button("Set player 2 starting positions").clicked() {
-                }
+                if ui.button("Set player 2 starting positions").clicked() {}
 
                 if ui.button("Revert to default parameters").clicked() {
                     *self = AmazonsGame::default();

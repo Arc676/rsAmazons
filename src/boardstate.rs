@@ -53,7 +53,7 @@ pub mod Amazons {
                 boardHeight: 0,
                 currentPlayer: 0,
                 board: ptr::null_mut(),
-                map: ptr::null_mut()
+                map: ptr::null_mut(),
             }
         }
     }
@@ -82,70 +82,70 @@ pub mod Amazons {
             unsafe { &(*(::std::ptr::null::<BoardState>())).whitePieces as *const _ as usize },
             0usize,
             concat!(
-            "Offset of field: ",
-            stringify!(BoardState),
-            "::",
-            stringify!(whitePieces)
+                "Offset of field: ",
+                stringify!(BoardState),
+                "::",
+                stringify!(whitePieces)
             )
         );
         assert_eq!(
             unsafe { &(*(::std::ptr::null::<BoardState>())).blackPieces as *const _ as usize },
             4usize,
             concat!(
-            "Offset of field: ",
-            stringify!(BoardState),
-            "::",
-            stringify!(blackPieces)
+                "Offset of field: ",
+                stringify!(BoardState),
+                "::",
+                stringify!(blackPieces)
             )
         );
         assert_eq!(
             unsafe { &(*(::std::ptr::null::<BoardState>())).boardWidth as *const _ as usize },
             8usize,
             concat!(
-            "Offset of field: ",
-            stringify!(BoardState),
-            "::",
-            stringify!(boardWidth)
+                "Offset of field: ",
+                stringify!(BoardState),
+                "::",
+                stringify!(boardWidth)
             )
         );
         assert_eq!(
             unsafe { &(*(::std::ptr::null::<BoardState>())).boardHeight as *const _ as usize },
             12usize,
             concat!(
-            "Offset of field: ",
-            stringify!(BoardState),
-            "::",
-            stringify!(boardHeight)
+                "Offset of field: ",
+                stringify!(BoardState),
+                "::",
+                stringify!(boardHeight)
             )
         );
         assert_eq!(
             unsafe { &(*(::std::ptr::null::<BoardState>())).currentPlayer as *const _ as usize },
             16usize,
             concat!(
-            "Offset of field: ",
-            stringify!(BoardState),
-            "::",
-            stringify!(currentPlayer)
+                "Offset of field: ",
+                stringify!(BoardState),
+                "::",
+                stringify!(currentPlayer)
             )
         );
         assert_eq!(
             unsafe { &(*(::std::ptr::null::<BoardState>())).board as *const _ as usize },
             24usize,
             concat!(
-            "Offset of field: ",
-            stringify!(BoardState),
-            "::",
-            stringify!(board)
+                "Offset of field: ",
+                stringify!(BoardState),
+                "::",
+                stringify!(board)
             )
         );
         assert_eq!(
             unsafe { &(*(::std::ptr::null::<BoardState>())).map as *const _ as usize },
             32usize,
             concat!(
-            "Offset of field: ",
-            stringify!(BoardState),
-            "::",
-            stringify!(map)
+                "Offset of field: ",
+                stringify!(BoardState),
+                "::",
+                stringify!(map)
             )
         );
     }
@@ -168,7 +168,7 @@ pub mod Amazons {
         pub fn new(x: u32, y: u32) -> Self {
             Square {
                 x: x as c_int,
-                y: y as c_int
+                y: y as c_int,
             }
         }
     }
@@ -267,7 +267,10 @@ pub mod Amazons {
         #[doc = " @param board Board state to check"]
         #[doc = " @param square Square to check"]
         #[doc = " @return The controller of the region containing the given square"]
-        pub fn boardstate_squareController(board: *mut BoardState, square: *mut Square) -> SquareState;
+        pub fn boardstate_squareController(
+            board: *mut BoardState,
+            square: *mut Square,
+        ) -> SquareState;
     }
 
     extern "C" {
@@ -275,8 +278,10 @@ pub mod Amazons {
         #[doc = " @param board Board state"]
         #[doc = " @param player The player to check"]
         #[doc = " @return Whether the specified player has any valid moves"]
-        pub fn playerHasValidMove(board: *mut BoardState, player: SquareState)
-                                  -> ::std::os::raw::c_int;
+        pub fn playerHasValidMove(
+            board: *mut BoardState,
+            player: SquareState,
+        ) -> ::std::os::raw::c_int;
     }
 
     extern "C" {
