@@ -135,6 +135,7 @@ impl AmazonsGame {
         painter.add(egui::Shape::mesh(mesh));
     }
 
+    #[allow(non_upper_case_globals)]
     fn draw_board(&mut self, painter: &Painter, to_screen: RectTransform, frame: &Frame) {
         if self.white_sprite.is_none() {
             self.load_sprites(frame)
@@ -174,25 +175,33 @@ fn number_setting(ui: &mut Ui, num: &mut u32, min: u32, max: u32, lbl: &str) {
 impl epi::App for AmazonsGame {
     fn update(&mut self, ctx: &egui::CtxRef, frame: &epi::Frame) {
         egui::SidePanel::left("side_panel").show(ctx, |ui| {
-            ui.heading("Settings");
+            if self.game_in_progress {
+                ui.heading("Game In Progress");
+                ui.label("Cannot change settings during a game");
+                if ui.button("Stop Game").clicked() {
+                    self.game_in_progress = false;
+                }
+            } else {
+                ui.heading("Settings");
 
-            number_setting(ui, &mut self.white_amazons, 0, 10, "Player 1 pieces");
-            number_setting(ui, &mut self.black_amazons, 0, 10, "Player 2 pieces");
-            number_setting(ui, &mut self.board_width, 2, 20, "Board width");
-            number_setting(ui, &mut self.board_height, 2, 20, "Board height");
+                number_setting(ui, &mut self.white_amazons, 0, 10, "Player 1 pieces");
+                number_setting(ui, &mut self.black_amazons, 0, 10, "Player 2 pieces");
+                number_setting(ui, &mut self.board_width, 2, 20, "Board width");
+                number_setting(ui, &mut self.board_height, 2, 20, "Board height");
 
-            if ui.button("Set player 1 starting positions").clicked() {
-            }
+                if ui.button("Set player 1 starting positions").clicked() {
+                }
 
-            if ui.button("Set player 2 starting positions").clicked() {
-            }
+                if ui.button("Set player 2 starting positions").clicked() {
+                }
 
-            if ui.button("Revert to default parameters").clicked() {
-                *self = AmazonsGame::default();
-            }
+                if ui.button("Revert to default parameters").clicked() {
+                    *self = AmazonsGame::default();
+                }
 
-            if ui.button("New Game").clicked() {
-                self.new_game();
+                if ui.button("New Game").clicked() {
+                    self.new_game();
+                }
             }
 
             let sep = Separator::default().spacing(12.).horizontal();
