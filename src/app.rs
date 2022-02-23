@@ -25,6 +25,7 @@ use eframe::{egui, epi};
 type PosVec = Vec<(u32, u32)>;
 type ImageData = (TextureId, Vec2);
 
+#[derive(PartialEq)]
 enum ClickableState {
     GameInProgress,
     PickingWhite,
@@ -196,7 +197,16 @@ impl AmazonsGame {
                     painter.rect_filled(rect, 0., Color32::from_rgba_unmultiplied(0, 255, 0, 128))
                 }
             },
-            _ => ()
+            _ => {
+                for (x, y) in &self.white_starting {
+                    let rect = self.square_from_coords(*x, *y, to_screen);
+                    AmazonsGame::draw_sprite(rect, self.white_sprite, painter);
+                }
+                for (x, y) in &self.black_starting {
+                    let rect = self.square_from_coords(*x, *y, to_screen);
+                    AmazonsGame::draw_sprite(rect, self.black_sprite, painter);
+                }
+            }
         }
     }
 
@@ -254,35 +264,59 @@ fn number_setting(ui: &mut Ui, num: &mut u32, min: u32, max: u32, lbl: &str) {
 impl epi::App for AmazonsGame {
     fn update(&mut self, ctx: &egui::CtxRef, frame: &epi::Frame) {
         egui::SidePanel::left("side_panel").show(ctx, |ui| {
-            if self.state == ClickableState::GameInProgress {
-                ui.heading("Game In Progress");
-                if ui.button("Undo last selection").clicked() {
-                    if self.clicked_square > 0 {
-                        self.clicked_square -= 1;
+            match self.state {
+                ClickableState::GameInProgress => {
+                    ui.heading("Game In Progress");
+                    if ui.button("Undo last selection").clicked() {
+                        if self.clicked_square > 0 {
+                            self.clicked_square -= 1;
+                        }
                     }
-                }
-                ui.label("Cannot change settings during a game");
-                if ui.button("Stop Game").clicked() {
-                    self.state == ClickableState::Idle;
-                }
-            } else {
-                ui.heading("Settings");
+                    ui.label("Cannot change settings during a game");
+                    if ui.button("Stop Game").clicked() {
+                        self.state = ClickableState::Idle;
+                    }
+                },
+                ClickableState::Idle => {
+                    ui.heading("Settings");
 
-                number_setting(ui, &mut self.white_amazons, 0, 10, "Player 1 pieces");
-                number_setting(ui, &mut self.black_amazons, 0, 10, "Player 2 pieces");
-                number_setting(ui, &mut self.board_width, 2, 20, "Board width");
-                number_setting(ui, &mut self.board_height, 2, 20, "Board height");
+                    number_setting(ui, &mut self.white_amazons, 0, 10, "Player 1 pieces");
+                    number_setting(ui, &mut self.black_amazons, 0, 10, "Player 2 pieces");
+                    number_setting(ui, &mut self.board_width, 2, 20, "Board width");
+                    number_setting(ui, &mut self.board_height, 2, 20, "Board height");
 
-                if ui.button("Set player 1 starting positions").clicked() {}
+                    if ui.button("Set player 1 starting positions").clicked() {
+                        self.white_starting.clear();
+                        self.state = ClickableState::PickingWhite;
+                    }
 
-                if ui.button("Set player 2 starting positions").clicked() {}
+                    if ui.button("Set player 2 starting positions").clicked() {
+                        self.black_starting.clear();
+                        self.state = ClickableState::PickingBlack;
+                    }
 
-                if ui.button("Revert to default parameters").clicked() {
-                    *self = AmazonsGame::default();
-                }
+                    if ui.button("Revert to default parameters").clicked() {
+                        *self = AmazonsGame::default();
+                    }
 
-                if ui.button("New Game").clicked() {
-                    self.new_game();
+                    if ui.button("New Game").clicked() {
+                        self.new_game();
+                    }
+                },
+                _ => {
+                    ui.heading("Pick Starting Locations");
+                    if self.state == ClickableState::PickingWhite {
+                        ui.label("Click starting locations for player 1");
+                    } else {
+                        ui.label("Click starting positions for player 2");
+                    }
+                    if ui.button("Undo last selection").clicked() {
+                        if self.state == ClickableState::PickingWhite {
+                            self.white_starting.pop();
+                        } else {
+                            self.black_starting.pop();
+                        }
+                    }
                 }
             }
 
@@ -303,29 +337,43 @@ impl epi::App for AmazonsGame {
                 response.rect,
             );
             if let Some(pointer_pos) = response.interact_pointer_pos() {
-                let canvas_pos = to_screen.inverse() * pointer_pos;
-                let square_size = self.square_size();
-                let x = (canvas_pos.x / square_size).floor() as u32;
-                let y = (canvas_pos.y / square_size).floor() as u32;
-                match self.state {
-                    ClickableState::GameInProgress => {
-                        let acceptable = match self.clicked_square {
-                            0 => self.set_src(x, y),
-                            1 => self.set_dst(x, y),
-                            _ => {
-                                if self.move_amazon(x, y) {
-                                    // check for winner
-                                    true
-                                } else {
-                                    false
+                if response.clicked() {
+                    let canvas_pos = to_screen.inverse() * pointer_pos;
+                    let square_size = self.square_size();
+                    let x = (canvas_pos.x / square_size).floor() as u32;
+                    let y = (canvas_pos.y / square_size).floor() as u32;
+                    match self.state {
+                        ClickableState::GameInProgress => {
+                            let acceptable = match self.clicked_square {
+                                0 => self.set_src(x, y),
+                                1 => self.set_dst(x, y),
+                                _ => {
+                                    if self.move_amazon(x, y) {
+                                        // check for winner
+                                        true
+                                    } else {
+                                        false
+                                    }
                                 }
+                            };
+                            if acceptable {
+                                self.clicked_square = (self.clicked_square + 1) % 3;
                             }
-                        };
-                        if acceptable {
-                            self.clicked_square = (self.clicked_square + 1) % 3;
                         }
-                    },
-                    _ => ()
+                        ClickableState::PickingWhite => {
+                            self.white_starting.push((x, y));
+                            if self.white_starting.len() == self.white_amazons as usize {
+                                self.state = ClickableState::Idle;
+                            }
+                        }
+                        ClickableState::PickingBlack => {
+                            self.black_starting.push((x, y));
+                            if self.black_starting.len() == self.black_amazons as usize {
+                                self.state = ClickableState::Idle;
+                            }
+                        }
+                        _ => ()
+                    }
                 }
             }
             self.draw_board(&painter, to_screen, frame);
