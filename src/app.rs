@@ -62,6 +62,8 @@ pub struct AmazonsGame {
     dst_square: Square,
     #[cfg_attr(feature = "persistence", serde(skip))]
     shot_square: Square,
+    #[cfg_attr(feature = "persistence", serde(skip))]
+    clicked_square: u8,
 }
 
 impl Default for AmazonsGame {
@@ -82,6 +84,7 @@ impl Default for AmazonsGame {
             src_square: Square::default(),
             dst_square: Square::default(),
             shot_square: Square::default(),
+            clicked_square: 0,
         }
     }
 }
@@ -110,8 +113,12 @@ impl AmazonsGame {
         self.arrow_sprite = Some(arrows);
     }
 
+    fn square_size(&self) -> f32 {
+        (1. / self.board_height as f32).min(1. / self.board_width as f32)
+    }
+
     fn square_from_coords(&self, x: u32, y: u32, to_screen: RectTransform) -> Rect {
-        let square_size = (1. / self.board_height as f32).min(1. / self.board_width as f32);
+        let square_size = self.square_size();
         let x = x as f32 * square_size;
         let y = y as f32 * square_size;
         Rect {
@@ -169,7 +176,62 @@ impl AmazonsGame {
                     }
                 }
             }
+            if self.clicked_square == 2 {
+                let (x, y) = self.dst_square.destructure();
+                let rect = self.square_from_coords(x, y, to_screen);
+                painter.rect_filled(rect, 0., Color32::RED);
+            }
+            if self.clicked_square >= 1 {
+                let (x, y) = self.src_square.destructure();
+                let rect = self.square_from_coords(x, y, to_screen);
+                painter.rect_filled(rect, 0., Color32::from_rgba_unmultiplied(0, 255, 0, 128))
+            }
         }
+    }
+
+    fn set_src(&mut self, x: u32, y: u32) -> bool {
+        self.src_square = Square::new(x, y);
+        unsafe {
+            boardstate_squareState(&mut self.boardstate, &mut self.src_square)
+                == self.boardstate.currentPlayer
+        }
+    }
+
+    fn set_dst(&mut self, x: u32, y: u32) -> bool {
+        let mut dst = Square::new(x, y);
+        unsafe {
+            if isValidMove(&mut self.boardstate, &mut self.src_square, &mut dst) == 1 {
+                self.dst_square = dst;
+                return true;
+            }
+        }
+        false
+    }
+
+    fn move_amazon(&mut self, x: u32, y: u32) -> bool {
+        let mut shot = Square::new(x, y);
+        unsafe {
+            if boardstate_squareState(&mut self.boardstate, &mut self.src_square)
+                == self.boardstate.currentPlayer
+                && amazons_move(
+                    &mut self.boardstate,
+                    &mut self.src_square,
+                    &mut self.dst_square,
+                ) == 1
+            {
+                if amazons_shoot(&mut self.boardstate, &mut self.dst_square, &mut shot) == 1 {
+                    swapPlayer(&mut self.boardstate.currentPlayer);
+                    return true;
+                } else {
+                    amazons_move(
+                        &mut self.boardstate,
+                        &mut self.dst_square,
+                        &mut self.src_square,
+                    );
+                }
+            }
+        }
+        false
     }
 }
 
@@ -183,6 +245,11 @@ impl epi::App for AmazonsGame {
         egui::SidePanel::left("side_panel").show(ctx, |ui| {
             if self.game_in_progress {
                 ui.heading("Game In Progress");
+                if ui.button("Undo last selection").clicked() {
+                    if self.clicked_square > 0 {
+                        self.clicked_square -= 1;
+                    }
+                }
                 ui.label("Cannot change settings during a game");
                 if ui.button("Stop Game").clicked() {
                     self.game_in_progress = false;
@@ -224,6 +291,29 @@ impl epi::App for AmazonsGame {
                 Rect::from_min_size(Pos2::ZERO, response.rect.square_proportions()),
                 response.rect,
             );
+            if let Some(pointer_pos) = response.interact_pointer_pos() {
+                let canvas_pos = to_screen.inverse() * pointer_pos;
+                let square_size = self.square_size();
+                let x = (canvas_pos.x / square_size).floor() as u32;
+                let y = (canvas_pos.y / square_size).floor() as u32;
+                if self.game_in_progress {
+                    let acceptable = match self.clicked_square {
+                        0 => self.set_src(x, y),
+                        1 => self.set_dst(x, y),
+                        _ => {
+                            if self.move_amazon(x, y) {
+                                // check for winner
+                                true
+                            } else {
+                                false
+                            }
+                        },
+                    };
+                    if acceptable {
+                        self.clicked_square = (self.clicked_square + 1) % 3;
+                    }
+                }
+            }
             self.draw_board(&painter, to_screen, frame);
         });
     }

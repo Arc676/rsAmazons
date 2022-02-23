@@ -171,6 +171,10 @@ pub mod Amazons {
                 y: y as c_int,
             }
         }
+
+        pub fn destructure(&self) -> (u32, u32) {
+            (self.x as u32, self.y as u32)
+        }
     }
 
     #[test]
