@@ -108,10 +108,19 @@ impl Default for AmazonsGame {
 
 impl AmazonsGame {
     pub fn new_game(&mut self) {
-        unsafe {
-            if self.white_starting.is_empty() {
+        if self.white_starting.is_empty() {
+            unsafe {
                 boardstate_standard(&mut self.boardstate);
             }
+        } else {
+            self.boardstate.init(
+                self.white_amazons,
+                self.black_amazons,
+                self.board_width,
+                self.board_height,
+                &self.white_starting,
+                &self.black_starting,
+            );
         }
         self.state = ClickableState::GameInProgress;
     }
