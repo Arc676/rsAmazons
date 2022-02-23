@@ -14,25 +14,36 @@
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 use eframe::{egui, epi};
-use eframe::egui::{Color32, emath, Painter, Pos2, Rect, Sense, Separator, Slider, Ui};
+use eframe::egui::{Color32, emath, Painter, Pos2, Rect, Sense, Separator, Slider, TextureId, Ui, Vec2};
 use eframe::egui::emath::RectTransform;
+use eframe::epi::Frame;
+use crate::sprites::*;
 
 type PosVec = Vec<(u32, u32)>;
 
 #[cfg_attr(feature = "persistence", derive(serde::Deserialize, serde::Serialize))]
 #[cfg_attr(feature = "persistence", serde(default))]
 pub struct AmazonsGame {
+    // Board dimensions
     board_height: u32,
     board_width: u32,
 
+    // Starting pieces
     white_amazons: u32,
     black_amazons: u32,
 
+    // Starting positions
     white_starting: PosVec,
     black_starting: PosVec,
 
-    white_pos: PosVec,
-    black_pos: PosVec,
+    #[cfg_attr(feature = "persistence", serde(skip))]
+    white_sprite: Option<(TextureId, Vec2)>,
+
+    #[cfg_attr(feature = "persistence", serde(skip))]
+    black_sprite: Option<(TextureId, Vec2)>,
+
+    #[cfg_attr(feature = "persistence", serde(skip))]
+    arrow_sprite: Option<(TextureId, Vec2)>,
 }
 
 impl Default for AmazonsGame {
@@ -48,30 +59,57 @@ impl Default for AmazonsGame {
             black_starting: vec![
                 (6, 0), (9, 3), (9, 6), (6, 9)
             ],
-            white_pos: vec![],
-            black_pos: vec![]
+            white_sprite: None,
+            black_sprite: None,
+            arrow_sprite: None
         }
     }
 }
 
 impl AmazonsGame {
     pub fn new_game(&mut self) {
-        self.white_pos = self.white_starting.clone();
-        self.black_pos = self.black_starting.clone();
     }
 
-    fn draw_board(&self, painter: &Painter, to_screen: RectTransform) {
+    fn load_sprites(&mut self, frame: &Frame) {
+        let bows = include_bytes!("../sprites/P1.png");
+        let bows = load_image_from_bytes(bows, frame);
+        self.white_sprite = Some(bows);
+
+        let spears = include_bytes!("../sprites/P2.png");
+        let spears = load_image_from_bytes(spears, frame);
+        self.black_sprite = Some(spears);
+
+        let arrows = include_bytes!("../sprites/Occupied.png");
+        let arrows = load_image_from_bytes(arrows, frame);
+        self.arrow_sprite = Some(arrows);
+    }
+
+    fn square_from_coords(&self, x: u32, y: u32, to_screen: RectTransform) -> Rect {
         let square_size = (1. / self.board_height as f32)
             .min(1. / self.board_width as f32);
+        let x = x as f32 * square_size;
+        let y = y as f32 * square_size;
+        Rect{
+            min: to_screen * Pos2 { x, y },
+            max: to_screen * Pos2 { x: x + square_size, y: y + square_size }
+        }
+    }
+
+    fn draw_sprite(rect: Rect, sprite: Option<(TextureId, Vec2)>, painter: &Painter) {
+        let id = sprite.unwrap().0;
+        let mut mesh = egui::epaint::Mesh::with_texture(id);
+        mesh.add_rect_with_uv(rect, Rect::from_min_max(Pos2 { x: 0., y: 0. }, Pos2 { x: 1., y: 1. }), Color32::WHITE);
+        painter.add(egui::Shape::mesh(mesh));
+    }
+
+    fn draw_board(&mut self, painter: &Painter, to_screen: RectTransform, frame: &Frame) {
+        if self.white_sprite.is_none() {
+            self.load_sprites(frame)
+        }
         for x in 0..self.board_width {
             for y in 0..self.board_height {
                 if (x + y) % 2 == 0 {
-                    let x = x as f32 * square_size;
-                    let y = y as f32 * square_size;
-                    let rect = Rect{
-                        min: to_screen * Pos2 { x, y },
-                        max: to_screen * Pos2 { x: x + square_size, y: y + square_size }
-                    };
+                    let rect = self.square_from_coords(x, y, to_screen);
                     painter.rect_filled(rect, 0., Color32::GRAY);
                 }
             }
@@ -120,7 +158,7 @@ impl epi::App for AmazonsGame {
                 Rect::from_min_size(Pos2::ZERO, response.rect.square_proportions()),
                 response.rect,
             );
-            self.draw_board(&painter, to_screen);
+            self.draw_board(&painter, to_screen, frame);
         });
     }
 

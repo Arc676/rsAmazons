@@ -4,6 +4,7 @@
 #![forbid(unsafe_code)]
 
 mod app;
+mod sprites;
 
 use app::AmazonsGame;
 
