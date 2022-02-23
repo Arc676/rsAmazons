@@ -30,7 +30,8 @@ enum ClickableState {
     GameInProgress,
     PickingWhite,
     PickingBlack,
-    Idle
+    GameOver(SquareState),
+    Idle,
 }
 
 #[cfg_attr(feature = "persistence", derive(serde::Deserialize, serde::Serialize))]
@@ -61,10 +62,15 @@ pub struct AmazonsGame {
     state: ClickableState,
     #[cfg_attr(feature = "persistence", serde(skip))]
     boardstate: BoardState,
+    #[cfg_attr(feature = "persistence", serde(skip))]
+    white_squares: u32,
+    #[cfg_attr(feature = "persistence", serde(skip))]
+    black_squares: u32,
 
     #[cfg_attr(feature = "persistence", serde(skip))]
     highlight_regions: bool,
 
+    // User move
     #[cfg_attr(feature = "persistence", serde(skip))]
     src_square: Square,
     #[cfg_attr(feature = "persistence", serde(skip))]
@@ -89,6 +95,8 @@ impl Default for AmazonsGame {
             arrow_sprite: None,
             state: ClickableState::Idle,
             boardstate: BoardState::default(),
+            white_squares: 0,
+            black_squares: 0,
             highlight_regions: false,
             src_square: Square::default(),
             dst_square: Square::default(),
@@ -165,7 +173,7 @@ impl AmazonsGame {
             }
         }
         match self.state {
-            ClickableState::GameInProgress => {
+            ClickableState::GameInProgress | ClickableState::GameOver(_) => {
                 for x in 0..self.board_width {
                     for y in 0..self.board_height {
                         let rect = self.square_from_coords(x, y, to_screen);
@@ -196,7 +204,33 @@ impl AmazonsGame {
                     let rect = self.square_from_coords(x, y, to_screen);
                     painter.rect_filled(rect, 0., Color32::from_rgba_unmultiplied(0, 255, 0, 128))
                 }
-            },
+                if let ClickableState::GameOver(_) = self.state {
+                    if self.highlight_regions {
+                        for x in 0..self.board_width {
+                            for y in 0..self.board_height {
+                                let rect = self.square_from_coords(x, y, to_screen);
+                                let mut sq = Square::new(x, y);
+                                unsafe {
+                                    match boardstate_squareController(&mut self.boardstate, &mut sq)
+                                    {
+                                        SquareState_WHITE => painter.rect_filled(
+                                            rect,
+                                            0.,
+                                            Color32::from_rgba_unmultiplied(255, 0, 0, 128),
+                                        ),
+                                        SquareState_BLACK => painter.rect_filled(
+                                            rect,
+                                            0.,
+                                            Color32::from_rgba_unmultiplied(0, 0, 255, 128),
+                                        ),
+                                        _ => (),
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
             _ => {
                 for (x, y) in &self.white_starting {
                     let rect = self.square_from_coords(*x, *y, to_screen);
@@ -254,6 +288,34 @@ impl AmazonsGame {
         }
         false
     }
+
+    fn game_winner(&mut self) -> SquareState {
+        let (mut ws, mut bs) = (0, 0);
+        let winner = unsafe { boardstate_winner(&mut self.boardstate, &mut ws, &mut bs) };
+        if winner != SquareState_EMPTY {
+            self.highlight_regions = true;
+            self.white_squares = ws as u32;
+            self.black_squares = bs as u32;
+            if ws == bs {
+                return if winner == SquareState_BLACK {
+                    SquareState_WHITE
+                } else {
+                    SquareState_BLACK
+                };
+            }
+            return winner;
+        }
+        unsafe {
+            if playerHasValidMove(&mut self.boardstate, self.boardstate.currentPlayer) == 1 {
+                return SquareState_EMPTY;
+            }
+        }
+        if self.boardstate.currentPlayer == SquareState_BLACK {
+            SquareState_WHITE
+        } else {
+            SquareState_BLACK
+        }
+    }
 }
 
 fn number_setting(ui: &mut Ui, num: &mut u32, min: u32, max: u32, lbl: &str) {
@@ -267,16 +329,48 @@ impl epi::App for AmazonsGame {
             match self.state {
                 ClickableState::GameInProgress => {
                     ui.heading("Game In Progress");
+                    if self.boardstate.currentPlayer == SquareState_WHITE {
+                        ui.label("Bows to move");
+                    } else {
+                        ui.label("Spears to move");
+                    }
                     if ui.button("Undo last selection").clicked() {
                         if self.clicked_square > 0 {
                             self.clicked_square -= 1;
                         }
                     }
-                    ui.label("Cannot change settings during a game");
                     if ui.button("Stop Game").clicked() {
                         self.state = ClickableState::Idle;
                     }
-                },
+                }
+                #[allow(non_upper_case_globals)]
+                ClickableState::GameOver(winner) => {
+                    ui.heading("Game Over!");
+                    match winner {
+                        SquareState_WHITE => {
+                            ui.label("Bows win!");
+                            if self.highlight_regions {
+                                ui.label(format!(
+                                    "Controlled squares: {} - {}",
+                                    self.white_squares, self.black_squares
+                                ));
+                            }
+                        }
+                        SquareState_BLACK => {
+                            ui.label("Spears win!");
+                            if self.highlight_regions {
+                                ui.label(format!(
+                                    "Controlled squares: {} - {}",
+                                    self.black_squares, self.white_squares
+                                ));
+                            }
+                        }
+                        _ => (),
+                    }
+                    if ui.button("OK").clicked() {
+                        self.state = ClickableState::Idle;
+                    }
+                }
                 ClickableState::Idle => {
                     ui.heading("Settings");
 
@@ -302,7 +396,7 @@ impl epi::App for AmazonsGame {
                     if ui.button("New Game").clicked() {
                         self.new_game();
                     }
-                },
+                }
                 _ => {
                     ui.heading("Pick Starting Locations");
                     if self.state == ClickableState::PickingWhite {
@@ -349,7 +443,14 @@ impl epi::App for AmazonsGame {
                                 1 => self.set_dst(x, y),
                                 _ => {
                                     if self.move_amazon(x, y) {
-                                        // check for winner
+                                        let winner = self.game_winner();
+                                        #[allow(non_upper_case_globals)]
+                                        match winner {
+                                            SquareState_WHITE | SquareState_BLACK => {
+                                                self.state = ClickableState::GameOver(winner)
+                                            }
+                                            _ => (),
+                                        }
                                         true
                                     } else {
                                         false
@@ -372,7 +473,7 @@ impl epi::App for AmazonsGame {
                                 self.state = ClickableState::Idle;
                             }
                         }
-                        _ => ()
+                        _ => (),
                     }
                 }
             }
