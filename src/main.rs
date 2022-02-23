@@ -1,10 +1,9 @@
 // Taken from public eframe template (with light modifications)
 // https://github.com/emilk/eframe_template
 
-#![forbid(unsafe_code)]
-
 mod app;
 mod sprites;
+mod boardstate;
 
 use app::AmazonsGame;
 
