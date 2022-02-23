@@ -1,0 +1,3 @@
+[submodule "Amazons"]
+	path = Amazons
+	url = git@github.com:Arc676/Amazons.git
