@@ -13,11 +13,13 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-use eframe::{egui, epi};
-use eframe::egui::{Color32, emath, Painter, Pos2, Rect, Sense, Separator, Slider, TextureId, Ui, Vec2};
-use eframe::egui::emath::RectTransform;
-use eframe::epi::Frame;
 use crate::sprites::*;
+use eframe::egui::emath::RectTransform;
+use eframe::egui::{
+    emath, Color32, Painter, Pos2, Rect, Sense, Separator, Slider, TextureId, Ui, Vec2,
+};
+use eframe::epi::Frame;
+use eframe::{egui, epi};
 
 type PosVec = Vec<(u32, u32)>;
 
@@ -48,20 +50,16 @@ pub struct AmazonsGame {
 
 impl Default for AmazonsGame {
     fn default() -> Self {
-        AmazonsGame{
+        AmazonsGame {
             board_height: 10,
             board_width: 10,
             white_amazons: 4,
             black_amazons: 4,
-            white_starting: vec![
-                (3, 0), (0, 3), (0, 6), (3, 9)
-            ],
-            black_starting: vec![
-                (6, 0), (9, 3), (9, 6), (6, 9)
-            ],
+            white_starting: vec![(3, 0), (0, 3), (0, 6), (3, 9)],
+            black_starting: vec![(6, 0), (9, 3), (9, 6), (6, 9)],
             white_sprite: None,
             black_sprite: None,
-            arrow_sprite: None
+            arrow_sprite: None,
         }
     }
 }
@@ -85,20 +83,27 @@ impl AmazonsGame {
     }
 
     fn square_from_coords(&self, x: u32, y: u32, to_screen: RectTransform) -> Rect {
-        let square_size = (1. / self.board_height as f32)
-            .min(1. / self.board_width as f32);
+        let square_size = (1. / self.board_height as f32).min(1. / self.board_width as f32);
         let x = x as f32 * square_size;
         let y = y as f32 * square_size;
-        Rect{
+        Rect {
             min: to_screen * Pos2 { x, y },
-            max: to_screen * Pos2 { x: x + square_size, y: y + square_size }
+            max: to_screen
+                * Pos2 {
+                    x: x + square_size,
+                    y: y + square_size,
+                },
         }
     }
 
     fn draw_sprite(rect: Rect, sprite: Option<(TextureId, Vec2)>, painter: &Painter) {
         let id = sprite.unwrap().0;
         let mut mesh = egui::epaint::Mesh::with_texture(id);
-        mesh.add_rect_with_uv(rect, Rect::from_min_max(Pos2 { x: 0., y: 0. }, Pos2 { x: 1., y: 1. }), Color32::WHITE);
+        mesh.add_rect_with_uv(
+            rect,
+            Rect::from_min_max(Pos2 { x: 0., y: 0. }, Pos2 { x: 1., y: 1. }),
+            Color32::WHITE,
+        );
         painter.add(egui::Shape::mesh(mesh));
     }
 
@@ -152,8 +157,8 @@ impl epi::App for AmazonsGame {
 
         egui::CentralPanel::default().show(ctx, |ui| {
             ui.heading("Game of the Amazons");
-            let (response, painter) = ui.allocate_painter(
-                ui.available_size_before_wrap(), Sense::click());
+            let (response, painter) =
+                ui.allocate_painter(ui.available_size_before_wrap(), Sense::click());
             let to_screen = emath::RectTransform::from_to(
                 Rect::from_min_size(Pos2::ZERO, response.rect.square_proportions()),
                 response.rect,
