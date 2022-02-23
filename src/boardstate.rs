@@ -20,15 +20,6 @@ pub mod Amazons {
     #[doc = " that are controlled by both players"]
     pub type SquareState = ::std::os::raw::c_uint;
 
-    pub const CheckState_UNCHECKED: CheckState = 0;
-    pub const CheckState_VISITED: CheckState = 1;
-    pub const CheckState_ASSIGNED: CheckState = 2;
-
-    #[doc = " Utility enum for representing the state of squares on the board"]
-    #[doc = " during a flood fill used to determine who controls which region"]
-    #[doc = " on the board"]
-    pub type CheckState = ::std::os::raw::c_uint;
-
     #[doc = " Represents the board state of an ongoing game"]
     #[doc = " (number of pieces for each player, board size,"]
     #[doc = " board state, and regions controlled by each player)"]
