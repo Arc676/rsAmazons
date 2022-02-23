@@ -23,6 +23,7 @@ use eframe::epi::Frame;
 use eframe::{egui, epi};
 
 type PosVec = Vec<(u32, u32)>;
+type ImageData = (TextureId, Vec2);
 
 #[cfg_attr(feature = "persistence", derive(serde::Deserialize, serde::Serialize))]
 #[cfg_attr(feature = "persistence", serde(default))]
@@ -41,11 +42,11 @@ pub struct AmazonsGame {
 
     // Sprites
     #[cfg_attr(feature = "persistence", serde(skip))]
-    white_sprite: Option<(TextureId, Vec2)>,
+    white_sprite: Option<ImageData>,
     #[cfg_attr(feature = "persistence", serde(skip))]
-    black_sprite: Option<(TextureId, Vec2)>,
+    black_sprite: Option<ImageData>,
     #[cfg_attr(feature = "persistence", serde(skip))]
-    arrow_sprite: Option<(TextureId, Vec2)>,
+    arrow_sprite: Option<ImageData>,
 
     // Game state
     #[cfg_attr(feature = "persistence", serde(skip))]
@@ -131,7 +132,7 @@ impl AmazonsGame {
         }
     }
 
-    fn draw_sprite(rect: Rect, sprite: Option<(TextureId, Vec2)>, painter: &Painter) {
+    fn draw_sprite(rect: Rect, sprite: Option<ImageData>, painter: &Painter) {
         let id = sprite.unwrap().0;
         let mut mesh = egui::epaint::Mesh::with_texture(id);
         mesh.add_rect_with_uv(
