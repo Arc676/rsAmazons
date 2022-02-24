@@ -131,6 +131,9 @@ impl AmazonsGame {
             if *x >= self.board_width || *y >= self.board_height {
                 return Err("Player 1 has one or more starting positions out of bounds");
             }
+            if self.black_starting.contains(&(*x, *y)) {
+                return Err("Overlapping starting positions");
+            }
         }
         for (x, y) in &self.black_starting {
             if *x >= self.board_width || *y >= self.board_height {
