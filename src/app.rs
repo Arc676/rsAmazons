@@ -280,6 +280,16 @@ impl AmazonsGame {
                     }
                 }
             }
+            ClickableState::Idle if self.is_empty_config() => {
+                for (x, y) in vec![(3u32, 0u32), (0, 3), (0, 6), (3, 9)] {
+                    let rect = self.square_from_coords(x, y, to_screen);
+                    AmazonsGame::draw_sprite(rect, self.white_sprite, painter);
+                }
+                for (x, y) in vec![(6u32, 0u32), (9, 3), (9, 6), (6, 9)] {
+                    let rect = self.square_from_coords(x, y, to_screen);
+                    AmazonsGame::draw_sprite(rect, self.black_sprite, painter);
+                }
+            }
             _ => {
                 for (x, y) in &self.white_starting {
                     let rect = self.square_from_coords(*x, *y, to_screen);
