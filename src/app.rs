@@ -31,6 +31,7 @@ enum ClickableState {
     PickingWhite,
     PickingBlack,
     GameOver(SquareState),
+    InvalidConfig(String),
     Idle,
 }
 
@@ -107,7 +108,43 @@ impl Default for AmazonsGame {
 }
 
 impl AmazonsGame {
+    fn is_empty_config(&self) -> bool {
+        self.white_starting.is_empty()
+            && self.white_amazons == 4
+            && self.black_starting.is_empty()
+            && self.black_amazons == 4
+            && self.board_width == 10
+            && self.board_height == 10
+    }
+
+    fn config_is_valid(&self) -> Result<(), &str> {
+        if self.is_empty_config() {
+            return Ok(());
+        }
+        if self.white_starting.len() != self.white_amazons as usize {
+            return Err("Starting positions for player 1 not provided");
+        }
+        if self.black_starting.len() != self.black_amazons as usize {
+            return Err("Starting positions for player 2 not provided");
+        }
+        for (x, y) in &self.white_starting {
+            if *x >= self.board_width || *y >= self.board_height {
+                return Err("Player 1 has one or more starting positions out of bounds");
+            }
+        }
+        for (x, y) in &self.black_starting {
+            if *x >= self.board_width || *y >= self.board_height {
+                return Err("Player 2 has one or more starting positions out of bounds");
+            }
+        }
+        Ok(())
+    }
+
     pub fn new_game(&mut self) {
+        if let Err(e) = self.config_is_valid() {
+            self.state = ClickableState::InvalidConfig(e.to_string());
+            return;
+        }
         if self.white_starting.is_empty() {
             unsafe {
                 boardstate_standard(&mut self.boardstate);
@@ -302,7 +339,7 @@ impl AmazonsGame {
         let (mut ws, mut bs) = (0, 0);
         let winner = unsafe { boardstate_winner(&mut self.boardstate, &mut ws, &mut bs) };
         if winner != SquareState_EMPTY {
-            self.highlight_regions = true;
+            self.highlight_regions = ws > 0 || bs > 0;
             self.white_squares = ws as u32;
             self.black_squares = bs as u32;
             if ws == bs {
@@ -335,7 +372,7 @@ fn number_setting(ui: &mut Ui, num: &mut u32, min: u32, max: u32, lbl: &str) {
 impl epi::App for AmazonsGame {
     fn update(&mut self, ctx: &egui::CtxRef, frame: &epi::Frame) {
         egui::SidePanel::left("side_panel").show(ctx, |ui| {
-            match self.state {
+            match &self.state {
                 ClickableState::GameInProgress => {
                     ui.heading("Game In Progress");
                     if self.boardstate.currentPlayer == SquareState_WHITE {
@@ -355,7 +392,7 @@ impl epi::App for AmazonsGame {
                 #[allow(non_upper_case_globals)]
                 ClickableState::GameOver(winner) => {
                     ui.heading("Game Over!");
-                    match winner {
+                    match *winner {
                         SquareState_WHITE => {
                             ui.label("Bows win!");
                             if self.highlight_regions {
@@ -406,12 +443,22 @@ impl epi::App for AmazonsGame {
                         self.new_game();
                     }
                 }
-                _ => {
+                ClickableState::PickingWhite | ClickableState::PickingBlack => {
                     ui.heading("Pick Starting Locations");
                     if self.state == ClickableState::PickingWhite {
                         ui.label("Click starting locations for player 1");
+                        ui.label(format!(
+                            "{}/{} positions chosen",
+                            self.white_starting.len(),
+                            self.white_amazons
+                        ));
                     } else {
                         ui.label("Click starting positions for player 2");
+                        ui.label(format!(
+                            "{}/{} positions chosen",
+                            self.black_starting.len(),
+                            self.black_amazons
+                        ));
                     }
                     if ui.button("Undo last selection").clicked() {
                         if self.state == ClickableState::PickingWhite {
@@ -419,6 +466,13 @@ impl epi::App for AmazonsGame {
                         } else {
                             self.black_starting.pop();
                         }
+                    }
+                }
+                ClickableState::InvalidConfig(reason) => {
+                    ui.heading("Invalid Configuration");
+                    ui.label(reason);
+                    if ui.button("OK").clicked() {
+                        self.state = ClickableState::Idle;
                     }
                 }
             }
@@ -471,15 +525,19 @@ impl epi::App for AmazonsGame {
                             }
                         }
                         ClickableState::PickingWhite => {
-                            self.white_starting.push((x, y));
-                            if self.white_starting.len() == self.white_amazons as usize {
-                                self.state = ClickableState::Idle;
+                            if x < self.board_width && y < self.board_height {
+                                self.white_starting.push((x, y));
+                                if self.white_starting.len() == self.white_amazons as usize {
+                                    self.state = ClickableState::Idle;
+                                }
                             }
                         }
                         ClickableState::PickingBlack => {
-                            self.black_starting.push((x, y));
-                            if self.black_starting.len() == self.black_amazons as usize {
-                                self.state = ClickableState::Idle;
+                            if x < self.board_width && y < self.board_height {
+                                self.black_starting.push((x, y));
+                                if self.black_starting.len() == self.black_amazons as usize {
+                                    self.state = ClickableState::Idle;
+                                }
                             }
                         }
                         _ => (),
