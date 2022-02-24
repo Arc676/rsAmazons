@@ -337,9 +337,14 @@ impl AmazonsGame {
 
     fn game_winner(&mut self) -> SquareState {
         let (mut ws, mut bs) = (0, 0);
-        let winner = unsafe { boardstate_winner(&mut self.boardstate, &mut ws, &mut bs) };
+        let (winner, moves_left) = unsafe {
+            (
+                boardstate_winner(&mut self.boardstate, &mut ws, &mut bs),
+                playerHasValidMove(&mut self.boardstate, self.boardstate.currentPlayer) == 1,
+            )
+        };
         if winner != SquareState_EMPTY {
-            self.highlight_regions = ws > 0 || bs > 0;
+            self.highlight_regions = moves_left;
             self.white_squares = ws as u32;
             self.black_squares = bs as u32;
             if ws == bs {
@@ -351,10 +356,8 @@ impl AmazonsGame {
             }
             return winner;
         }
-        unsafe {
-            if playerHasValidMove(&mut self.boardstate, self.boardstate.currentPlayer) == 1 {
-                return SquareState_EMPTY;
-            }
+        if moves_left {
+            return SquareState_EMPTY;
         }
         if self.boardstate.currentPlayer == SquareState_BLACK {
             SquareState_WHITE
