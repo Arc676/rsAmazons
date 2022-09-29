@@ -25,12 +25,20 @@ jobs:
       - uses: little-core-labs/get-git-tag@v3.0.1
         id: get_version
       - uses: actions/checkout@v2
+        with:
+          submodules: true
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
           target: x86_64-unknown-linux-gnu
           override: true
-      - name: Build
+
+      - name: Build backend
+        run: |
+          cd Amazons
+          make lib
+          cd ..
+      - name: Build frontend
         run: |
           cargo build --release --target x86_64-unknown-linux-gnu
 
@@ -62,12 +70,19 @@ jobs:
       - uses: little-core-labs/get-git-tag@v3.0.1
         id: get_version
       - uses: actions/checkout@v2
+        with:
+          submodules: true
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
           target: x86_64-pc-windows-msvc
           override: true
 
+      - name: Build backend
+        run: |
+          cd Amazons
+          make lib
+          cd ..
       - name: Build
         run: |
           cargo build --release --target x86_64-pc-windows-msvc
@@ -100,6 +115,8 @@ jobs:
       - uses: little-core-labs/get-git-tag@v3.0.1
         id: get_version
       - uses: actions/checkout@v2
+        with:
+          submodules: true
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
@@ -110,6 +127,11 @@ jobs:
           export CFLAGS="-fno-stack-check"
           export MACOSX_DEPLOYMENT_TARGET="10.9"
 
+      - name: Build backend
+        run: |
+          cd Amazons
+          make lib
+          cd ..
       - name: Build
         run: |
           cargo build --release --target x86_64-apple-darwin
