@@ -85,7 +85,7 @@ jobs:
       - name: Build backend
         run: |
           cd Amazons
-          make lib
+          make lib CC=msvc
           mv libamazons.a amazons.lib
           cd ..
       - name: Build
