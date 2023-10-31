@@ -82,14 +82,12 @@ jobs:
           target: x86_64-pc-windows-msvc
           override: true
 
-      - uses: TheMrMilchmann/setup-msvc-dev@v3
-        with:
-          arch: x64
+      - uses: ilammy/msvc-dev-cmd@v1
 
       - name: Build backend
         run: |
           cd Amazons
-          make CC=msvc lib
+          make CC=cl lib
           mv libamazons.a amazons.lib
           cd ..
       - name: Build
