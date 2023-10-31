@@ -67,7 +67,7 @@ jobs:
 
   # Build for Windows
   release-windows:
-    runs-on: windows-latest
+    runs-on: abrarov/msvc-2015
     if: ${{ github.event.inputs.tag == '' }}
 
     steps:
