@@ -39,42 +39,80 @@ jobs:
         run: |
           sudo apt update
           sudo apt install libxcb-shape0-dev libxcb-xfixes0-dev
-          sudo apt install gcc-mingw-w64-x86-64-win32
+          sudo apt install gcc-mingw-w64-x86-64-win32 gcc-mingw-w64-i686-win32
 
-      - name: Setup Rust toolchain for windows
+      ## 64 bit windows build
+      - name: Setup Rust toolchain for windows (64)
         uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
           target: x86_64-pc-windows-gnu
           override: true
-      - name: Build backend for windows
+      - name: Build backend for windows (64)
         run: |
           cd Amazons
           make CC=/usr/bin/x86_64-w64-mingw32-gcc-win32 lib
           cd ..
-      - name: Build frontend for windows
+      - name: Build frontend for windows (64)
         run: |
           cargo build --release --target x86_64-pc-windows-gnu
 
-      - name: Prepare package for windows
+      - name: Prepare package for windows (64)
         run: |
-          mkdir windows
-          cp target/x86_64-pc-windows-gnu/release/${{ env.binary }}.exe windows/
+          mkdir windows64
+          cp target/x86_64-pc-windows-gnu/release/${{ env.binary }}.exe windows64/
       - name: Package as a zip
         uses: vimtor/action-zip@v1
         with:
-          files: windows
+          files: windows64
           dest: ${{ env.binary }}.zip
 
-      - name: Upload binaries to release for windows
+      - name: Upload binaries to release for windows (64)
         uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           file: ${{ env.binary }}.zip
-          asset_name: ${{ env.binary }}-windows-${{ steps.get_version.outputs.tag }}.zip
+          asset_name: ${{ env.binary }}-windows-64bit-${{ steps.get_version.outputs.tag }}.zip
           tag: ${{ github.ref }}
           overwrite: true
 
+      ## 32 bit windows build
+      - name: Setup Rust toolchain for windows (32)
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          target: i686-pc-windows-gnu
+          override: true
+      - name: Build backend for windows (32)
+        run: |
+          cd Amazons
+          make clean
+          make CC=/usr/bin/i686-w64-mingw32-gcc-win32 lib
+          cd ..
+      - name: Build frontend for windows (32)
+        run: |
+          cargo build --release --target i686-pc-windows-gnu
+
+      - name: Prepare package for windows (32)
+        run: |
+          mkdir windows32
+          cp target/i686-pc-windows-gnu/release/${{ env.binary }}.exe windows32/
+      - name: Package as a zip
+        uses: vimtor/action-zip@v1
+        with:
+          files: windows32
+          dest: ${{ env.binary }}.zip
+
+      - name: Upload binaries to release for windows (32)
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: ${{ env.binary }}.zip
+          asset_name: ${{ env.binary }}-windows-32bit-${{ steps.get_version.outputs.tag }}.zip
+          tag: ${{ github.ref }}
+          overwrite: true
+
+    ## Linux build
       - name: Build backend for linux
         run: |
           cd Amazons
