@@ -86,6 +86,7 @@ jobs:
 
       - name: Build backend
         run: |
+          vcvars32
           cd Amazons
           make CC=cl lib
           mv libamazons.a amazons.lib
