@@ -82,11 +82,10 @@ jobs:
           target: x86_64-pc-windows-msvc
           override: true
 
-      - uses: ilammy/msvc-dev-cmd@v1
+      - uses: egor-tensin/vs-shell@v2
 
       - name: Build backend
         run: |
-          vcvars32
           cd Amazons
           make CC=cl lib
           mv libamazons.a amazons.lib
