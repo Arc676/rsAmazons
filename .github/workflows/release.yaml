@@ -73,7 +73,7 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
-          target: x86_64-pc-windows-msvc
+          target: x86_64-pc-windows-gnu
           override: true
       - name: Build backend for windows
         run: |
@@ -83,7 +83,7 @@ jobs:
           cd ..
       - name: Build frontend for windows
         run: |
-          cargo build --release --target x86_64-pc-windows-msvc
+          cargo build --release --target x86_64-pc-windows-gnu
 
       - name: Prepare package for windows
         run: |
