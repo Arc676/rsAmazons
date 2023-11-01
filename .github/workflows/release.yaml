@@ -17,97 +17,90 @@ env:
 
 jobs:
   # Build for Linux
-  release-linux:
+  release-linux-and-windows:
     runs-on: ubuntu-latest
     if: ${{ github.event.inputs.tag == '' }}
 
     steps:
-      - uses: little-core-labs/get-git-tag@v3.0.1
+      - uses: little-core-labs/get-git-tag@v3.0.2
         id: get_version
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
         with:
           submodules: true
-      - uses: actions-rs/toolchain@v1
+
+      - name: Setup Rust toolchain for linux
+        uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
           target: x86_64-unknown-linux-gnu
           override: true
 
-      - name: Build backend
-        run: |
-          cd Amazons
-          make lib
-          cd ..
       - name: Get dependencies
         run: |
           sudo apt update
           sudo apt install libxcb-shape0-dev libxcb-xfixes0-dev
-      - name: Build frontend
-        run: |
-          cargo build --release --target x86_64-unknown-linux-gnu
+          sudo apt install gcc-mingw-w64-x86-64-win32
 
-      - name: Prepare package
-        run: |
-          mkdir linux
-          cp target/x86_64-unknown-linux-gnu/release/${{ env.binary }} linux/
-      - name: Package as a zip
-        uses: vimtor/action-zip@v1
-        with:
-          files: linux
-          dest: ${{ env.binary }}.zip
-
-      - name: Upload binaries to release
-        uses: svenstaro/upload-release-action@v2
-        with:
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: ${{ env.binary }}.zip
-          asset_name: ${{ env.binary }}-linux-${{ steps.get_version.outputs.tag }}.zip
-          tag: ${{ github.ref }}
-          overwrite: true
-
-  # Build for Windows
-  release-windows:
-    runs-on: windows-latest
-    if: ${{ github.event.inputs.tag == '' }}
-
-    steps:
-      - uses: little-core-labs/get-git-tag@v3.0.1
-        id: get_version
-      - uses: actions/checkout@v2
-        with:
-          submodules: true
-      - uses: actions-rs/toolchain@v1
+      - name: Setup Rust toolchain for windows
+        uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
-          target: x86_64-pc-windows-msvc
+          target: x86_64-pc-windows-gnu
           override: true
-
-      - name: Build backend
+      - name: Build backend for windows
         run: |
           cd Amazons
-          make lib
-          mv libamazons.a amazons.lib
+          make CC=/usr/bin/x86_64-w64-mingw32-gcc-win32 lib
           cd ..
-      - name: Build
+      - name: Build frontend for windows
         run: |
-          cargo build --release --target x86_64-pc-windows-msvc
+          cargo build --release --target x86_64-pc-windows-gnu
 
-      - name: Prepare package
+      - name: Prepare package for windows
         run: |
           mkdir windows
-          cp target/x86_64-pc-windows-msvc/release/${{ env.binary }}.exe windows/
+          cp target/x86_64-pc-windows-gnu/release/${{ env.binary }}.exe windows/
       - name: Package as a zip
         uses: vimtor/action-zip@v1
         with:
           files: windows
           dest: ${{ env.binary }}.zip
 
-      - name: Upload binaries to release
+      - name: Upload binaries to release for windows
         uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           file: ${{ env.binary }}.zip
           asset_name: ${{ env.binary }}-windows-${{ steps.get_version.outputs.tag }}.zip
+          tag: ${{ github.ref }}
+          overwrite: true
+
+      - name: Build backend for linux
+        run: |
+          cd Amazons
+          make clean
+          make lib
+          cd ..
+      - name: Build frontend for linux
+        run: |
+          cargo build --release --target x86_64-unknown-linux-gnu
+
+      - name: Prepare package for linux
+        run: |
+          mkdir linux
+          cp target/x86_64-unknown-linux-gnu/release/${{ env.binary }} linux/
+      - name: Package as a zip for linux
+        uses: vimtor/action-zip@v1
+        with:
+          files: linux
+          dest: ${{ env.binary }}.zip
+
+      - name: Upload binaries to release for linux
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: ${{ env.binary }}.zip
+          asset_name: ${{ env.binary }}-linux-${{ steps.get_version.outputs.tag }}.zip
           tag: ${{ github.ref }}
           overwrite: true
 
@@ -117,9 +110,9 @@ jobs:
     if: ${{ github.event.inputs.tag == '' }}
 
     steps:
-      - uses: little-core-labs/get-git-tag@v3.0.1
+      - uses: little-core-labs/get-git-tag@v3.0.2
         id: get_version
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
         with:
           submodules: true
       - uses: actions-rs/toolchain@v1
