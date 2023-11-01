@@ -41,6 +41,35 @@ jobs:
           sudo apt install libxcb-shape0-dev libxcb-xfixes0-dev
           sudo apt install gcc-mingw-w64-x86-64-win32 gcc-mingw-w64-i686-win32
 
+      ## Linux build
+      - name: Build backend for linux
+        run: |
+          cd Amazons
+          make lib
+          cd ..
+      - name: Build frontend for linux
+        run: |
+          cargo build --release --target x86_64-unknown-linux-gnu
+
+      - name: Prepare package for linux
+        run: |
+          mkdir linux
+          cp target/x86_64-unknown-linux-gnu/release/${{ env.binary }} linux/
+      - name: Package as a zip for linux
+        uses: vimtor/action-zip@v1
+        with:
+          files: linux
+          dest: ${{ env.binary }}.zip
+
+      - name: Upload binaries to release for linux
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: ${{ env.binary }}.zip
+          asset_name: ${{ env.binary }}-linux-${{ steps.get_version.outputs.tag }}.zip
+          tag: ${{ github.ref }}
+          overwrite: true
+
       ## 64 bit windows build
       - name: Setup Rust toolchain for windows (64)
         uses: actions-rs/toolchain@v1
@@ -51,6 +80,7 @@ jobs:
       - name: Build backend for windows (64)
         run: |
           cd Amazons
+          make clean
           make CC=/usr/bin/x86_64-w64-mingw32-gcc-win32 lib
           cd ..
       - name: Build frontend for windows (64)
@@ -109,36 +139,6 @@ jobs:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           file: ${{ env.binary }}.zip
           asset_name: ${{ env.binary }}-windows-32bit-${{ steps.get_version.outputs.tag }}.zip
-          tag: ${{ github.ref }}
-          overwrite: true
-
-    ## Linux build
-      - name: Build backend for linux
-        run: |
-          cd Amazons
-          make clean
-          make lib
-          cd ..
-      - name: Build frontend for linux
-        run: |
-          cargo build --release --target x86_64-unknown-linux-gnu
-
-      - name: Prepare package for linux
-        run: |
-          mkdir linux
-          cp target/x86_64-unknown-linux-gnu/release/${{ env.binary }} linux/
-      - name: Package as a zip for linux
-        uses: vimtor/action-zip@v1
-        with:
-          files: linux
-          dest: ${{ env.binary }}.zip
-
-      - name: Upload binaries to release for linux
-        uses: svenstaro/upload-release-action@v2
-        with:
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: ${{ env.binary }}.zip
-          asset_name: ${{ env.binary }}-linux-${{ steps.get_version.outputs.tag }}.zip
           tag: ${{ github.ref }}
           overwrite: true
 
