@@ -50,7 +50,7 @@ jobs:
       - name: Build backend for windows
         run: |
           cd Amazons
-          make CC=/usr/bin/x86_64-w64-mingw32-cpp-win32 lib
+          make CC=/usr/bin/x86_64-w64-mingw32-cpp-win32 FLAGS='' lib
           cd ..
       - name: Build frontend for windows
         run: |
