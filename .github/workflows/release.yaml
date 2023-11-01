@@ -59,7 +59,7 @@ jobs:
       - name: Prepare package for windows
         run: |
           mkdir windows
-          cp target/x86_64-pc-windows-msvc/release/${{ env.binary }}.exe windows/
+          cp target/x86_64-pc-windows-gnu/release/${{ env.binary }}.exe windows/
       - name: Package as a zip
         uses: vimtor/action-zip@v1
         with:
